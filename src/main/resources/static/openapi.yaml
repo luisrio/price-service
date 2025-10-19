@@ -1,0 +1,126 @@
+openapi: 3.0.3
+info:
+  title: Price Service API
+  version: 1.0.0
+  description: |
+    REST API for retrieving the applicable price (tariff) for a given product and brand
+    at a specified UTC instant.  
+    This OpenAPI definition is static and loaded from YAML (no annotations).
+
+servers:
+  - url: http://localhost:8080
+    description: Local environment
+
+paths:
+  /api/prices/applicable:
+    get:
+      summary: Get applicable price
+      description: |
+        Returns the applicable price (PVP) for a product and brand at the specified
+        UTC application date.  
+        The system chooses the price with the **highest priority** among overlapping
+        intervals.
+      operationId: getApplicablePrice
+      parameters:
+        - name: applicationDate
+          in: query
+          required: true
+          description: UTC instant in ISO-8601 format (e.g. 2020-06-14T16:00:00Z)
+          schema:
+            type: string
+            format: date-time
+            example: "2020-06-14T16:00:00Z"
+        - name: productId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 35455
+        - name: brandId
+          in: query
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        "200":
+          description: Applicable price found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicablePriceResponse"
+              examples:
+                overlapExample:
+                  summary: Overlap case (2020-06-14T16:00Z)
+                  value:
+                    productId: 35455
+                    brandId: 1
+                    priceList: 2
+                    startDateUtc: "2020-06-14T15:00:00Z"
+                    endDateUtc: "2020-06-14T18:30:00Z"
+                    finalPrice: 25.45
+                    currency: "EUR"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: No applicable price found
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+
+components:
+  schemas:
+    ApplicablePriceResponse:
+      type: object
+      properties:
+        productId:
+          type: integer
+          format: int64
+        brandId:
+          type: integer
+          format: int64
+        priceList:
+          type: integer
+          format: int32
+        startDateUtc:
+          type: string
+          format: date-time
+        endDateUtc:
+          type: string
+          format: date-time
+        finalPrice:
+          type: number
+          format: double
+        currency:
+          type: string
+          example: "EUR"
+      required:
+        - productId
+        - brandId
+        - priceList
+        - startDateUtc
+        - endDateUtc
+        - finalPrice
+        - currency
+
+    ProblemDetail:
+      type: object
+      description: RFC-7807 Problem Detail response
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
